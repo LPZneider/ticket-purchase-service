@@ -63,6 +63,7 @@ class TicketDynamoDBAdapterTest {
         assertThat(captor.getValue().tableName()).isEqualTo("tickets");
         assertThat(captor.getValue().key().get("pk").s()).isEqualTo(EVENT_ID);
         assertThat(captor.getValue().key().get("sk").s()).isEqualTo(TICKET_ID);
+        assertThat(captor.getValue().updateExpression()).contains("REMOVE reservationExpiresAt");
     }
 
     @Test

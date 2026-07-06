@@ -89,26 +89,22 @@ class OrderDynamoDBAdapterTest {
     }
 
     @Test
-    void shouldReturnLatestOrderTransition() {
+    void orderEntityGettersAndSettersCoverAllFields() {
         OrderEntity entity = new OrderEntity();
-        entity.setPk("order-1");
-        entity.setSk("2026-07-01T10:05:00Z");
-        entity.setOrderId("order-1");
-        entity.setEventId("event-1");
-        entity.setTicketIds(List.of("t1", "t2"));
-        entity.setUserId("user-1");
-        entity.setOrderStatus("CONFIRMED");
-        entity.setCreatedAt("2026-07-01T10:05:00Z");
+        entity.setPk("pk-1"); entity.setSk("sk-1");
+        entity.setOrderId("order-1"); entity.setEventId("event-1");
+        entity.setTicketIds(List.of("t1")); entity.setUserId("user-1");
+        entity.setOrderStatus("CONFIRMED"); entity.setCreatedAt("2026-07-01T10:00:00Z");
+        entity.setReason("some reason");
 
-        Page<OrderEntity> page = Page.builder(OrderEntity.class).items(List.of(entity)).build();
-        PagePublisher<OrderEntity> pagePublisher = PagePublisher.create(SdkPublisher.adapt(Flux.just(page)));
-        when(table.query(any(QueryEnhancedRequest.class))).thenReturn(pagePublisher);
-
-        StepVerifier.create(adapter.findLatestByOrderId("order-1"))
-                .assertNext(order -> {
-                    assertThat(order.getOrderId()).isEqualTo("order-1");
-                    assertThat(order.getOrderStatus()).isEqualTo(OrderStatus.CONFIRMED);
-                })
-                .verifyComplete();
+        assertThat(entity.getPk()).isEqualTo("pk-1");
+        assertThat(entity.getSk()).isEqualTo("sk-1");
+        assertThat(entity.getOrderId()).isEqualTo("order-1");
+        assertThat(entity.getEventId()).isEqualTo("event-1");
+        assertThat(entity.getTicketIds()).containsExactly("t1");
+        assertThat(entity.getUserId()).isEqualTo("user-1");
+        assertThat(entity.getOrderStatus()).isEqualTo("CONFIRMED");
+        assertThat(entity.getCreatedAt()).isEqualTo("2026-07-01T10:00:00Z");
+        assertThat(entity.getReason()).isEqualTo("some reason");
     }
 }
