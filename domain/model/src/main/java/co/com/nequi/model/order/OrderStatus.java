@@ -4,5 +4,9 @@ public enum OrderStatus {
     PENDING_CONFIRMATION,
     CONFIRMED,
     REJECTED,
-    EXPIRED
+    EXPIRED;
+
+    public boolean isFinal() {
+        return this == CONFIRMED || this == REJECTED || this == EXPIRED;
+    }
 }

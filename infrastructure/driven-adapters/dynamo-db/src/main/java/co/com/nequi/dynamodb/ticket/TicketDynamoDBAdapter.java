@@ -41,7 +41,7 @@ public class TicketDynamoDBAdapter implements TicketRepository {
                 .key(Map.of(
                         "pk", AttributeValue.fromS(eventId),
                         "sk", AttributeValue.fromS(ticketId)))
-                .updateExpression("SET #status = :sold")
+                .updateExpression("SET #status = :sold REMOVE reservationExpiresAt")
                 .conditionExpression("#status = :reserved AND orderId = :orderId")
                 .expressionAttributeNames(Map.of("#status", "status"))
                 .expressionAttributeValues(Map.of(

@@ -12,7 +12,6 @@ import reactor.core.publisher.Mono;
 
 import java.time.Instant;
 import java.util.List;
-import java.util.stream.Collectors;
 
 @RequiredArgsConstructor
 public class ConfirmPurchaseUseCase {
@@ -22,15 +21,9 @@ public class ConfirmPurchaseUseCase {
 
     public Mono<PurchaseConfirmationResult> confirm(String orderId, String eventId, List<String> ticketIds, String userId) {
         return orderRepository.findLatestByOrderId(orderId)
-                .filter(ConfirmPurchaseUseCase::isAlreadyResolved)
+                .filter(order -> order.getOrderStatus().isFinal())
                 .map(order -> (PurchaseConfirmationResult) new PurchaseConfirmationResult.AlreadyProcessed(orderId, order.getOrderStatus()))
                 .switchIfEmpty(Mono.defer(() -> processConfirmation(orderId, eventId, ticketIds, userId)));
-    }
-
-    private static boolean isAlreadyResolved(Order order) {
-        return order.getOrderStatus() == OrderStatus.CONFIRMED
-                || order.getOrderStatus() == OrderStatus.REJECTED
-                || order.getOrderStatus() == OrderStatus.EXPIRED;
     }
 
     private Mono<PurchaseConfirmationResult> processConfirmation(String orderId, String eventId, List<String> ticketIds, String userId) {
@@ -40,27 +33,12 @@ public class ConfirmPurchaseUseCase {
                 .flatMap(results -> saveOrderTransition(orderId, eventId, ticketIds, userId, results));
     }
 
-    private static List<String> rejectedTicketIds(List<TicketConfirmationResult> results) {
-        return results.stream()
-                .filter(TicketConfirmationResult.Rejected.class::isInstance)
-                .map(result -> ((TicketConfirmationResult.Rejected) result).ticketId())
-                .toList();
-    }
-
-    private static String rejectionReason(List<TicketConfirmationResult> results) {
-        return results.stream()
-                .filter(TicketConfirmationResult.Rejected.class::isInstance)
-                .map(TicketConfirmationResult.Rejected.class::cast)
-                .map(rejected -> rejected.ticketId() + ": " + rejected.reason())
-                .collect(Collectors.joining("; "));
-    }
-
     private Mono<PurchaseConfirmationResult> saveOrderTransition(String orderId, String eventId, List<String> ticketIds,
                                                                    String userId, List<TicketConfirmationResult> results) {
-        List<String> rejectedTicketIds = rejectedTicketIds(results);
+        List<String> rejectedTicketIds = TicketConfirmationResult.rejectedTicketIds(results);
         boolean rejected = !rejectedTicketIds.isEmpty();
         OrderStatus status = rejected ? OrderStatus.REJECTED : OrderStatus.CONFIRMED;
-        String reason = rejected ? rejectionReason(results) : null;
+        String reason = rejected ? TicketConfirmationResult.rejectionReason(results) : null;
         Order order = Order.builder()
                 .orderId(orderId)
                 .eventId(eventId)
